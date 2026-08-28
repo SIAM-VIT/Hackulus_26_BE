@@ -6,6 +6,7 @@ A high-performance, asynchronous FastAPI backend service for managing the Hackul
 
 - **Consolidated 6-Table DB Architecture**: Streamlined SQL schema combining User/Admin entities, atomic reviews with `UNIQUE(submission_id, judge_id)` conflict handling, and flexible event phase configuration.
 - **Service Layer Architecture**: Clean decoupling between HTTP routes, business logic services, database models, and schemas.
+- **Admin-Driven Managed Workflow**: Designed for managed hackathons where team accounts, tracks, and problem statements are pre-provisioned via `POST /admin/team/create-with-members`. Participant self-registration (`POST /auth/user/signup`) is retained as an internal utility endpoint.
 - **Admin Endpoints**:
   - `POST /admin/team/create-with-members`: Create teams and bulk insert all members in a single atomic transaction.
   - `POST /admin/team/{team_id}/add-member`: Add individual members directly to existing teams.
