@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, UploadFile, File, Form, status
+from fastapi import APIRouter, Depends, UploadFile, File, Form, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import json
@@ -11,6 +11,17 @@ from app.services.submission_service import SubmissionService
 from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/submissions", tags=["Submissions"])
+
+def _parse_links_json(links_str: Optional[str]) -> Optional[dict]:
+    if not links_str:
+        return None
+    try:
+        return json.loads(links_str)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid JSON format provided in 'links' field"
+        )
 
 @router.get("/")
 async def list_my_submissions(
@@ -38,7 +49,7 @@ async def create_submission(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    parsed_links = json.loads(links) if links else None
+    parsed_links = _parse_links_json(links)
     data = SubmissionCreate(
         type=type,
         title=title,
@@ -57,7 +68,7 @@ async def update_submission(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    parsed_links = json.loads(links) if links else None
+    parsed_links = _parse_links_json(links)
     data = SubmissionUpdate(
         title=title,
         description=description,

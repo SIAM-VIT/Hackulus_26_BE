@@ -1,5 +1,6 @@
 import os
 from typing import Optional
+import aiofiles
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -43,8 +44,8 @@ class SubmissionService:
             file_name = f"{user.team_id}_{file.filename}"
             full_path = os.path.join(settings.UPLOAD_DIR, file_name)
             contents = await file.read()
-            with open(full_path, "wb") as f:
-                f.write(contents)
+            async with aiofiles.open(full_path, "wb") as f:
+                await f.write(contents)
             file_path_url = f"/uploads/{file_name}"
 
         links_data = data.links or {}
@@ -95,8 +96,8 @@ class SubmissionService:
             file_name = f"{user.team_id}_{file.filename}"
             full_path = os.path.join(settings.UPLOAD_DIR, file_name)
             contents = await file.read()
-            with open(full_path, "wb") as f:
-                f.write(contents)
+            async with aiofiles.open(full_path, "wb") as f:
+                await f.write(contents)
             links_data["file"] = f"/uploads/{file_name}"
 
         submission.links = links_data

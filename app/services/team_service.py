@@ -5,6 +5,8 @@ from app.models.team import Team, TeamStatus
 from app.models.user import User, UserRole
 from app.schemas.team import AdminCreateTeamRequest, TeamMemberCreate, TeamAssignTrackPanel
 
+from sqlalchemy.exc import IntegrityError
+
 class TeamService:
     @staticmethod
     async def create_team_with_members_by_admin(
@@ -58,7 +60,12 @@ class TeamService:
             db.add(user)
             created_users.append(user)
 
-        await db.commit()
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            raise HTTPException(status_code=400, detail="Database constraint conflict: Team name or email already registered")
+
         await db.refresh(new_team)
 
         return {
