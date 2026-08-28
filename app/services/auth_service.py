@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from app.models.user import User, UserRole
 from app.models.team import Team, TeamStatus
 from app.schemas.auth import SignupRequest, LoginRequest, TokenResponse
-from app.core.security import create_access_token
+from app.core.security import create_access_token, get_password_hash, verify_password
 
 class AuthService:
     @staticmethod
@@ -27,11 +27,15 @@ class AuthService:
             db.add(team)
             await db.flush()
 
-        # Create user (plain text password per non-prod requirement)
+        # PASSWORD HASHING TOGGLE:
+        # Currently using plain text password for simplified dev onboarding.
+        # To enable bcrypt secure hashing, uncomment line below:
+        # hashed_pwd = get_password_hash(data.password)
+
         new_user = User(
             name=data.name,
             email=data.email,
-            password_hash=data.password,
+            password_hash=data.password,  # Replace with hashed_pwd when using bcrypt
             role=UserRole.PARTICIPANT,
             team_id=team.team_id,
             is_leader=data.is_leader,
@@ -59,7 +63,11 @@ class AuthService:
         if not user:
             raise HTTPException(status_code=400, detail="Invalid credentials")
 
-        # Plain text password verification as requested
+        # PASSWORD VERIFICATION TOGGLE:
+        # Currently using plain text equality check.
+        # To enable bcrypt secure verification, uncomment line below:
+        # if not verify_password(data.password, user.password_hash):
+
         if user.password_hash != data.password:
             raise HTTPException(status_code=400, detail="Invalid credentials")
 

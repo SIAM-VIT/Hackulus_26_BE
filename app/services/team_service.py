@@ -5,7 +5,7 @@ from app.models.team import Team, TeamStatus
 from app.models.user import User, UserRole
 from app.schemas.team import AdminCreateTeamRequest, TeamMemberCreate, TeamAssignTrackPanel
 
-from sqlalchemy.exc import IntegrityError
+from app.core.security import get_password_hash
 
 class TeamService:
     @staticmethod
@@ -47,6 +47,8 @@ class TeamService:
         # 4. Create Members
         created_users = []
         for member in data.members:
+            # PASSWORD HASHING TOGGLE:
+            # To hash passwords with bcrypt, use: password_hash=get_password_hash(member.password)
             user = User(
                 name=member.name,
                 email=member.email,
@@ -93,6 +95,8 @@ class TeamService:
         if existing_user.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="User email already exists")
 
+        # PASSWORD HASHING TOGGLE:
+        # To hash passwords with bcrypt, use: password_hash=get_password_hash(member_data.password)
         new_user = User(
             name=member_data.name,
             email=member_data.email,
