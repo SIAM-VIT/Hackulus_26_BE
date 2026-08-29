@@ -7,7 +7,6 @@ from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.track import Track
-    from app.models.panel import Panel
     from app.models.user import User
     from app.models.submission import Submission
 
@@ -25,12 +24,10 @@ class Team(Base):
     problem_statement: Mapped[Optional[str]] = mapped_column(Text)
     idea: Mapped[Optional[str]] = mapped_column(Text)
     track_id: Mapped[Optional[int]] = mapped_column(ForeignKey("tracks.track_id", ondelete="CASCADE"))
-    panel_id: Mapped[Optional[int]] = mapped_column(ForeignKey("panels.panel_id", ondelete="SET NULL"))
     status: Mapped[TeamStatus] = mapped_column(String(32), default=TeamStatus.PENDING)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 
     track: Mapped[Optional["Track"]] = relationship("Track", back_populates="teams")
-    panel: Mapped[Optional["Panel"]] = relationship("Panel", back_populates="teams")
     members: Mapped[List["User"]] = relationship("User", back_populates="team")
     submissions: Mapped[List["Submission"]] = relationship("Submission", back_populates="team")

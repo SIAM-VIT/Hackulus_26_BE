@@ -1,7 +1,5 @@
-import os
 from typing import Optional
-import aiofiles
-from fastapi import HTTPException, UploadFile
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.models.submission import Submission, SubmissionType, SubmissionStatus
@@ -9,15 +7,13 @@ from app.models.team import Team, TeamStatus
 from app.models.user import User
 from app.models.event_config import EventConfig
 from app.schemas.submission import SubmissionCreate, SubmissionUpdate
-from app.core.config import settings
 
 class SubmissionService:
     @staticmethod
     async def create_submission(
         db: AsyncSession,
         user: User,
-        data: SubmissionCreate,
-        file: Optional[UploadFile] = None
+        data: SubmissionCreate
     ):
         if not user.team_id:
             raise HTTPException(status_code=400, detail="User must belong to a team")
@@ -37,20 +33,14 @@ class SubmissionService:
         if not windows.get(data.type, False):
             raise HTTPException(status_code=403, detail=f"{data.type} submissions are closed")
 
-        # Handle File Upload
-        file_path_url = None
-        if file:
-            os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-            file_name = f"{user.team_id}_{file.filename}"
-            full_path = os.path.join(settings.UPLOAD_DIR, file_name)
-            contents = await file.read()
-            async with aiofiles.open(full_path, "wb") as f:
-                await f.write(contents)
-            file_path_url = f"/uploads/{file_name}"
+        # Optionally update team track and problem statement if provided during submission
+        if team:
+            if data.track_id is not None:
+                team.track_id = data.track_id
+            if data.problem_statement:
+                team.problem_statement = data.problem_statement
 
         links_data = data.links or {}
-        if file_path_url:
-            links_data["file"] = file_path_url
 
         submission = Submission(
             team_id=user.team_id,
@@ -72,8 +62,7 @@ class SubmissionService:
         db: AsyncSession,
         submission_id: int,
         user: User,
-        data: SubmissionUpdate,
-        file: Optional[UploadFile] = None
+        data: SubmissionUpdate
     ):
         submission = await db.get(Submission, submission_id)
         if not submission or submission.team_id != user.team_id:
@@ -81,6 +70,14 @@ class SubmissionService:
 
         if not user.is_leader:
             raise HTTPException(status_code=403, detail="Only team leader can modify submission")
+
+        # Optionally update team track and problem statement if provided
+        team = await db.get(Team, user.team_id)
+        if team:
+            if data.track_id is not None:
+                team.track_id = data.track_id
+            if data.problem_statement:
+                team.problem_statement = data.problem_statement
 
         if data.title:
             submission.title = data.title
@@ -90,15 +87,6 @@ class SubmissionService:
         links_data = submission.links or {}
         if data.links:
             links_data.update(data.links)
-
-        if file:
-            os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-            file_name = f"{user.team_id}_{file.filename}"
-            full_path = os.path.join(settings.UPLOAD_DIR, file_name)
-            contents = await file.read()
-            async with aiofiles.open(full_path, "wb") as f:
-                await f.write(contents)
-            links_data["file"] = f"/uploads/{file_name}"
 
         submission.links = links_data
         await db.commit()

@@ -6,8 +6,9 @@ class UserResponse(BaseModel):
     name: str
     email: EmailStr
     role: str
+    registration_number: Optional[str] = None
+    hostel_block: Optional[str] = None
     team_id: Optional[int] = None
-    panel_id: Optional[int] = None
     is_leader: bool = False
     extra_info: Optional[Any] = None
 
@@ -18,7 +19,9 @@ class UserDetailResponse(BaseModel):
     user_id: int
     name: str
     email: EmailStr
-    is_leader: bool
+    registration_number: Optional[str] = None
+    hostel_block: Optional[str] = None
+    is_leader: bool = False
     extra_info: Optional[Any] = None
 
     class Config:

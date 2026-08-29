@@ -7,7 +7,6 @@ from app.core.database import Base
 if TYPE_CHECKING:
     from app.models.submission import Submission
     from app.models.user import User
-    from app.models.panel import Panel
     from app.models.track import Track
 
 class Review(Base):
@@ -16,7 +15,6 @@ class Review(Base):
     review_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     submission_id: Mapped[int] = mapped_column(ForeignKey("submissions.submission_id", ondelete="CASCADE"), nullable=False)
     judge_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.user_id", ondelete="SET NULL"))
-    panel_id: Mapped[Optional[int]] = mapped_column(ForeignKey("panels.panel_id", ondelete="SET NULL"))
     track_id: Mapped[Optional[int]] = mapped_column(ForeignKey("tracks.track_id", ondelete="SET NULL"))
     score: Mapped[Optional[float]] = mapped_column(Numeric(5, 2))
     comments: Mapped[Optional[str]] = mapped_column(Text)

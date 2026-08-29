@@ -3,7 +3,6 @@ from app.schemas.user import UserResponse, UserDetailResponse
 from app.schemas.team import AdminCreateTeamRequest, SuperAdminCreateTeamRequest, TeamMemberCreate, TeamResponse
 from app.schemas.submission import SubmissionCreate, SubmissionUpdate, SubmissionResponse
 from app.schemas.review import ReviewCreateUpdate, ReviewResponse
-from app.schemas.panel import PanelCreate, PanelResponse
 
 __all__ = [
     "SignupRequest",
@@ -19,7 +18,5 @@ __all__ = [
     "SubmissionUpdate",
     "SubmissionResponse",
     "ReviewCreateUpdate",
-    "ReviewResponse",
-    "PanelCreate",
-    "PanelResponse"
+    "ReviewResponse"
 ]

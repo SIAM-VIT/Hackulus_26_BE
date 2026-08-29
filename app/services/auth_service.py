@@ -76,7 +76,6 @@ class AuthService:
             "email": user.email,
             "role": user.role,
             "team_id": user.team_id,
-            "panel_id": user.panel_id,
             "is_leader": user.is_leader
         })
 

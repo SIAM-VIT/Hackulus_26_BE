@@ -1,9 +1,12 @@
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 from app.models.team import Team, TeamStatus
 from app.models.user import User, UserRole
-from app.schemas.team import AdminCreateTeamRequest, TeamMemberCreate, TeamAssignTrackPanel
+from app.models.track import Track
+from app.schemas.team import AdminCreateTeamRequest, TeamMemberCreate, TeamAssignTrack
 
 from app.core.security import get_password_hash
 
@@ -36,7 +39,6 @@ class TeamService:
         new_team = Team(
             team_name=data.team_name,
             track_id=data.track_id,
-            panel_id=data.panel_id,
             problem_statement=data.problem_statement,
             idea=data.idea,
             status=TeamStatus.PENDING
@@ -47,16 +49,15 @@ class TeamService:
         # 4. Create Members
         created_users = []
         for member in data.members:
-            # PASSWORD HASHING TOGGLE:
-            # To hash passwords with bcrypt, use: password_hash=get_password_hash(member.password)
             user = User(
                 name=member.name,
                 email=member.email,
                 password_hash=member.password,
+                registration_number=member.registration_number,
+                hostel_block=member.hostel_block,
                 role=UserRole.PARTICIPANT,
                 team_id=new_team.team_id,
                 is_leader=member.is_leader,
-                hostel_block=member.hostel_block,
                 extra_info=member.extra_info
             )
             db.add(user)
@@ -76,7 +77,6 @@ class TeamService:
                 "team_id": new_team.team_id,
                 "team_name": new_team.team_name,
                 "track_id": new_team.track_id,
-                "panel_id": new_team.panel_id,
                 "members_count": len(created_users)
             }
         }
@@ -95,16 +95,15 @@ class TeamService:
         if existing_user.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="User email already exists")
 
-        # PASSWORD HASHING TOGGLE:
-        # To hash passwords with bcrypt, use: password_hash=get_password_hash(member_data.password)
         new_user = User(
             name=member_data.name,
             email=member_data.email,
             password_hash=member_data.password,
+            registration_number=member_data.registration_number,
+            hostel_block=member_data.hostel_block,
             role=UserRole.PARTICIPANT,
             team_id=team_id,
             is_leader=member_data.is_leader,
-            hostel_block=member_data.hostel_block,
             extra_info=member_data.extra_info
         )
         db.add(new_user)
@@ -129,10 +128,10 @@ class TeamService:
         return {"success": True, "message": "Problem statement updated"}
 
     @staticmethod
-    async def update_team_track_and_panel(
+    async def update_team_track(
         db: AsyncSession, 
         team_id: int, 
-        data: TeamAssignTrackPanel
+        data: TeamAssignTrack
     ):
         team = await db.get(Team, team_id)
         if not team:
@@ -140,16 +139,52 @@ class TeamService:
 
         if data.track_id is not None:
             team.track_id = data.track_id
-        if data.panel_id is not None:
-            team.panel_id = data.panel_id
 
         await db.commit()
         await db.refresh(team)
 
         return {
             "success": True,
-            "message": "Team track and panel updated successfully",
+            "message": "Team track updated successfully",
             "team_id": team.team_id,
-            "track_id": team.track_id,
-            "panel_id": team.panel_id
+            "track_id": team.track_id
+        }
+
+    # Backward compatibility alias
+    update_team_track_and_panel = update_team_track
+
+    @staticmethod
+    async def get_my_team_details(db: AsyncSession, user: User):
+        if not user.team_id:
+            raise HTTPException(status_code=400, detail="User is not assigned to any team")
+
+        stmt = select(Team).options(selectinload(Team.members), selectinload(Team.track)).where(Team.team_id == user.team_id)
+        res = await db.execute(stmt)
+        team = res.scalar_one_or_none()
+
+        if not team:
+            raise HTTPException(status_code=404, detail="Team not found")
+
+        return {
+            "team_id": team.team_id,
+            "team_name": team.team_name,
+            "status": team.status,
+            "problem_statement": team.problem_statement,
+            "idea": team.idea,
+            "track": {
+                "track_id": team.track.track_id,
+                "name": team.track.name,
+                "description": team.track.description
+            } if team.track else None,
+            "members": [
+                {
+                    "user_id": m.user_id,
+                    "name": m.name,
+                    "email": m.email,
+                    "registration_number": m.registration_number,
+                    "hostel_block": m.hostel_block,
+                    "is_leader": m.is_leader
+                }
+                for m in team.members
+            ]
         }

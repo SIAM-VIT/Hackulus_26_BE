@@ -1,18 +1,18 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict, Any
 
 class TeamMemberCreate(BaseModel):
     name: str
     email: EmailStr
-    password: str = Field(..., pattern=r"^\d{2}[A-Z]{3}\d{4}$")
-    is_leader: bool = False
+    password: str
+    registration_number: Optional[str] = None
     hostel_block: Optional[str] = None
+    is_leader: bool = False
     extra_info: Optional[Dict[str, Any]] = None
 
 class AdminCreateTeamRequest(BaseModel):
     team_name: str
     track_id: Optional[int] = None
-    panel_id: Optional[int] = None
     problem_statement: Optional[str] = None
     idea: Optional[str] = None
     members: List[TeamMemberCreate]
@@ -20,9 +20,11 @@ class AdminCreateTeamRequest(BaseModel):
 # Alias for backwards compatibility
 SuperAdminCreateTeamRequest = AdminCreateTeamRequest
 
-class TeamAssignTrackPanel(BaseModel):
+class TeamAssignTrack(BaseModel):
     track_id: Optional[int] = None
-    panel_id: Optional[int] = None
+
+# Alias for backwards compatibility
+TeamAssignTrackPanel = TeamAssignTrack
 
 class TeamResponse(BaseModel):
     team_id: int
@@ -30,7 +32,6 @@ class TeamResponse(BaseModel):
     problem_statement: Optional[str] = None
     idea: Optional[str] = None
     track_id: Optional[int] = None
-    panel_id: Optional[int] = None
     status: str
 
     class Config:

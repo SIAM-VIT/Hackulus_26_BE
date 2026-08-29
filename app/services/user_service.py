@@ -9,24 +9,36 @@ from app.models.event_config import EventConfig
 class UserService:
     @staticmethod
     async def get_user_dashboard(db: AsyncSession, current_user: User):
-        # Verify team elimination status
+        team_data = None
+        members = []
+
+        # Verify team elimination status and fetch team with track
         if current_user.team_id:
-            team = await db.get(Team, current_user.team_id)
+            stmt = select(Team).options(selectinload(Team.track)).where(Team.team_id == current_user.team_id)
+            res = await db.execute(stmt)
+            team = res.scalar_one_or_none()
+
             if team and team.status == TeamStatus.REJECTED:
                 raise HTTPException(
                     status_code=403, 
                     detail="Your team has been eliminated and cannot perform this action."
                 )
-        else:
-            team = None
+            
+            if team:
+                team_data = {
+                    "team_id": team.team_id,
+                    "team_name": team.team_name,
+                    "track_id": team.track_id,
+                    "track_name": team.track.name if team.track else None,
+                    "problem_statement": team.problem_statement,
+                    "idea": team.idea,
+                    "status": team.status
+                }
 
-        # Fetch team members
-        members = []
-        if current_user.team_id:
-            res = await db.execute(
-                select(User).where(User.team_id == current_user.team_id)
-            )
-            members = res.scalars().all()
+                members_res = await db.execute(
+                    select(User).where(User.team_id == current_user.team_id)
+                )
+                members = members_res.scalars().all()
 
         # Fetch Event Config
         config_res = await db.execute(select(EventConfig).where(EventConfig.id == 1))
@@ -36,9 +48,23 @@ class UserService:
         windows = config.active_windows if config else {"review1": False, "review2": False, "final": False}
 
         return {
-            "user": current_user,
-            "team": team,
-            "members": members,
+            "user": {
+                "user_id": current_user.user_id,
+                "name": current_user.name,
+                "email": current_user.email,
+                "role": current_user.role,
+                "is_leader": current_user.is_leader
+            },
+            "team": team_data,
+            "members": [
+                {
+                    "user_id": m.user_id,
+                    "name": m.name,
+                    "email": m.email,
+                    "is_leader": m.is_leader
+                }
+                for m in members
+            ],
             "windows": windows,
             "currentPhase": current_phase
         }

@@ -29,3 +29,15 @@ async def user_signup(data: SignupRequest, db: AsyncSession = Depends(get_db)):
 )
 async def user_login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     return await AuthService.login_user(db, data)
+
+from app.schemas.user import UserResponse
+from app.dependencies import get_current_user
+from app.models.user import User
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    summary="Get authenticated user info"
+)
+async def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
