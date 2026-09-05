@@ -22,3 +22,7 @@ uploads/
 .vscode/
 .idea/
 *.swp
+
+# Database setup & Seed scripts
+seed_dummy_data.py
+setup_db.py
