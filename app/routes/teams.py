@@ -53,11 +53,11 @@ async def get_track_problem_statements(
 
 @router.put("/problem-statement", summary="Update team's problem statement")
 async def update_problem_statement(
-    problem_statement: str = Body(..., embed=True),
+    problem_statement_id: int = Body(..., embed=True),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return await TeamService.update_problem_statement(db, current_user, problem_statement)
+    return await TeamService.update_problem_statement(db, current_user, problem_statement_id)
 
 @router.put("/{team_id}/assign-track", summary="Judges/Admin: Dynamically assign track to team")
 async def assign_track(

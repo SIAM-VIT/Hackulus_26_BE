@@ -11,6 +11,6 @@ class EventConfig(Base):
     current_phase: Mapped[str] = mapped_column(String(100), default="Participants reach")
     active_windows: Mapped[Dict[str, Any]] = mapped_column(
         JSON, 
-        default={"review1": False, "review2": False, "final": False}
+        default={"review0": False, "review1": False, "review2": False}
     )
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)

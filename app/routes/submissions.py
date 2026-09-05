@@ -16,12 +16,13 @@ async def list_my_submissions(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if not current_user.team_id:
+    pp = current_user.participant_profile
+    if not pp or not pp.team_id:
         return {"submissions": []}
 
     res = await db.execute(
         select(Submission)
-        .where(Submission.team_id == current_user.team_id)
+        .where(Submission.team_id == pp.team_id)
         .order_by(Submission.created_at.desc())
     )
     submissions = res.scalars().all()
