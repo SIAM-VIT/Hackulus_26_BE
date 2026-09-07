@@ -9,10 +9,116 @@ from app.models.user import User, UserRole
 from app.models.participant_profile import ParticipantProfile
 from app.models.track import Track
 from app.models.problem_statement import ProblemStatement
-from app.schemas.team import AdminCreateTeamRequest, TeamMemberCreate, TeamAssignTrack, TeamBatchStatusUpdate
+from app.schemas.team import (
+    AdminCreateTeamRequest, TeamMemberCreate, TeamAssignTrack,
+    TeamBatchStatusUpdate, AdminCreateTeamSimpleRequest,
+)
 
 
 class TeamService:
+
+    # ------------------------------------------------------------------
+    # Simple admin team creation: only name, reg-number & leader flag
+    # ------------------------------------------------------------------
+    @staticmethod
+    async def create_team_simple_by_admin(db: AsyncSession, data: AdminCreateTeamSimpleRequest):
+        """
+        Create a team by admin with member names, student emails, and registration numbers.
+        Registration number is capitalized and stored as the login password.
+        """
+        # Reject duplicate team name
+        existing_team = await db.execute(select(Team).where(Team.team_name == data.team_name))
+        if existing_team.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail=f"Team '{data.team_name}' already exists")
+
+        # Normalize and validate inputs
+        emails = [m.email.strip().lower() for m in data.members]
+        if len(emails) != len(set(emails)):
+            raise HTTPException(status_code=400, detail="Duplicate member emails found in request")
+
+        reg_numbers = [m.registration_number.strip().upper() for m in data.members]
+        if len(reg_numbers) != len(set(reg_numbers)):
+            raise HTTPException(status_code=400, detail="Duplicate registration numbers found in request")
+
+        # Reject already registered emails
+        existing_emails = await db.execute(select(User.email).where(User.email.in_(emails)))
+        found_emails = existing_emails.scalars().all()
+        if found_emails:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Email(s) already registered: {', '.join(found_emails)}"
+            )
+
+        # Reject already registered registration numbers
+        existing_regs = await db.execute(
+            select(ParticipantProfile.registration_number).where(
+                ParticipantProfile.registration_number.in_(reg_numbers)
+            )
+        )
+        found_regs = existing_regs.scalars().all()
+        if found_regs:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Registration number(s) already registered: {', '.join(found_regs)}"
+            )
+
+        # Ensure exactly one leader
+        leaders = [m for m in data.members if m.is_leader]
+        if len(leaders) != 1:
+            raise HTTPException(status_code=400, detail="Exactly one member must be marked as leader")
+
+        new_team = Team(team_name=data.team_name, status=TeamStatus.PENDING)
+        db.add(new_team)
+        await db.flush()
+
+        created = []
+        for member in data.members:
+            email = member.email.strip().lower()
+            reg_no = member.registration_number.strip().upper()
+
+            user = User(
+                name=member.name.strip(),
+                email=email,
+                password_hash=reg_no,  # ALL CAPITAL registration number as password
+                role=UserRole.PARTICIPANT,
+            )
+            db.add(user)
+            await db.flush()
+
+            profile = ParticipantProfile(
+                user_id=user.user_id,
+                team_id=new_team.team_id,
+                is_leader=member.is_leader,
+                registration_number=reg_no,
+                extra_info={},
+            )
+            db.add(profile)
+            created.append({
+                "name": member.name.strip(),
+                "registration_number": reg_no,
+                "email": email,
+                "is_leader": member.is_leader
+            })
+
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            raise HTTPException(status_code=400, detail="Database conflict: team name, email, or registration number already taken")
+
+        await db.refresh(new_team)
+        return {
+            "message": "Team created successfully",
+            "team": {
+                "team_id": new_team.team_id,
+                "team_name": new_team.team_name,
+                "members": created,
+            }
+        }
+
+    # ------------------------------------------------------------------
+    # Full admin team creation (original — with email, track, PS)
+    # ------------------------------------------------------------------
     @staticmethod
     async def create_team_with_members_by_admin(db: AsyncSession, data: AdminCreateTeamRequest):
         existing_team = await db.execute(select(Team).where(Team.team_name == data.team_name))
