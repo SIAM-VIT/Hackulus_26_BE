@@ -13,11 +13,14 @@ from app.models.problem_statement import ProblemStatement
 from app.models.submission import Submission
 from app.models.review import Review
 from app.models.event_config import EventConfig
-from app.schemas.team import AdminCreateTeamRequest, TeamMemberCreate, TeamBatchStatusUpdate
+from app.schemas.team import (
+    AdminCreateTeamRequest, TeamMemberCreate, TeamBatchStatusUpdate,
+    AdminCreateTeamSimpleRequest,
+)
 from app.schemas.review import ReviewCreateUpdate
 from app.services.team_service import TeamService
 from app.services.review_service import ReviewService
-from app.dependencies import get_current_admin
+from app.dependencies import get_current_admin, get_current_judge_or_admin
 
 router = APIRouter(prefix="/admin", tags=["Admin Operations"])
 
@@ -26,6 +29,30 @@ class TimelinePhaseRequest(BaseModel):
 
 class TeamStatusRequest(BaseModel):
     status: str
+
+# ---------------------------------------------------------------------------
+# NEW — Simplified team registration by admin (no email / track / PS needed)
+# ---------------------------------------------------------------------------
+@router.post(
+    "/team/register",
+    status_code=status.HTTP_201_CREATED,
+    summary="Admin: Register a team (name + members with reg numbers only)",
+    description=(
+        "Admin provides the team name and each member's full name, "
+        "registration number, and whether they are the leader. "
+        "No tracks or problem statements are needed. "
+        "Email is auto-generated as `<reg_number_lowercase>@vitstudent.ac.in` "
+        "and the registration number is set as the login password."
+    )
+)
+async def register_team_by_admin(
+    data: AdminCreateTeamSimpleRequest,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    return await TeamService.create_team_simple_by_admin(db, data)
+
+
 
 @router.post(
     "/team/create-with-members", 
@@ -66,10 +93,10 @@ async def batch_update_team_status(
     """
     return await TeamService.batch_update_status(db, data)
 
-@router.get("/teams", summary="Admin: List all teams with tracks")
+@router.get("/teams", summary="Admin/Judge: List all teams with tracks")
 async def list_admin_teams(
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_user: User = Depends(get_current_judge_or_admin)
 ):
     stmt = select(Team).options(
         selectinload(Team.members).selectinload(ParticipantProfile.user),
@@ -105,11 +132,11 @@ async def list_admin_teams(
 
     return {"teams": result}
 
-@router.get("/team/{team_id}", summary="Admin: Get detailed team info, submissions and reviews")
+@router.get("/team/{team_id}", summary="Admin/Judge: Get detailed team info, submissions and reviews")
 async def get_admin_team_details(
     team_id: int,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_user: User = Depends(get_current_judge_or_admin)
 ):
     stmt = (
         select(Team)
@@ -186,11 +213,11 @@ async def get_admin_team_details(
         "submissions": submissions_list
     }
 
-@router.get("/submission/{submission_id}", summary="Admin: Get reviews for a submission")
+@router.get("/submission/{submission_id}", summary="Admin/Judge: Get reviews for a submission")
 async def get_admin_submission_reviews(
     submission_id: int,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_user: User = Depends(get_current_judge_or_admin)
 ):
     res = await db.execute(
         select(Review)
@@ -224,9 +251,9 @@ async def create_admin_submission_review(
     submission_id: int,
     data: ReviewCreateUpdate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_user: User = Depends(get_current_judge_or_admin)
 ):
-    return await ReviewService.create_or_update_review(db, submission_id, current_admin, data)
+    return await ReviewService.create_or_update_review(db, submission_id, current_user, data)
 
 @router.post("/team/{team_id}/status", summary="Admin: Set team status (e.g. rejected/shortlisted)")
 async def set_team_status(
@@ -247,18 +274,18 @@ async def set_team_status(
     await db.commit()
     return {"ok": True, "status": team.status}
 
-@router.get("/leaderboard", summary="Admin: View consolidated leaderboard and rubric scores")
+@router.get("/leaderboard", summary="Admin/Judge: View consolidated leaderboard and rubric scores")
 async def get_admin_leaderboard(
     round_name: Optional[str] = Query(None, description="Filter by round: review1 or review2"),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_user: User = Depends(get_current_judge_or_admin)
 ):
     return await ReviewService.get_leaderboard(db, round_name)
 
-@router.get("/timeline/phase", summary="Admin: Get current hackathon phase")
+@router.get("/timeline/phase", summary="Admin/Judge: Get current hackathon phase")
 async def get_hackathon_phase(
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_user: User = Depends(get_current_judge_or_admin)
 ):
     res = await db.execute(select(EventConfig).where(EventConfig.id == 1))
     config = res.scalar_one_or_none()

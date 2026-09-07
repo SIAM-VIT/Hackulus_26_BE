@@ -1,6 +1,34 @@
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List, Dict, Any
 
+
+# ---------------------------------------------------------------------------
+# Simplified Admin Team Creation (no email / track / problem-statement needed)
+# ---------------------------------------------------------------------------
+
+class SimpleTeamMember(BaseModel):
+    """Member payload provided when registering teams: name, student email, registration number (used as uppercase password)."""
+    name: str
+    email: EmailStr
+    registration_number: str          # e.g. "24BCE0001" – stored in UPPERCASE and used as password
+    is_leader: bool = False
+
+    @field_validator("email")
+    @classmethod
+    def validate_email_format(cls, v: str) -> str:
+        return v.strip().lower()
+
+    @field_validator("registration_number")
+    @classmethod
+    def validate_reg_format(cls, v: str) -> str:
+        return v.strip().upper()
+
+
+class AdminCreateTeamSimpleRequest(BaseModel):
+    """Create a team with just a name and member list. No track / PS required."""
+    team_name: str
+    members: List[SimpleTeamMember]
+
 class TeamMemberCreate(BaseModel):
     name: str
     email: EmailStr

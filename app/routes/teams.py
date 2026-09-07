@@ -25,9 +25,32 @@ async def list_tracks(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    res = await db.execute(select(Track).order_by(Track.track_id))
+    stmt = (
+        select(Track)
+        .options(selectinload(Track.problem_statements))
+        .order_by(Track.track_id)
+    )
+    res = await db.execute(stmt)
     tracks = res.scalars().all()
-    return [{"track_id": t.track_id, "name": t.name, "description": t.description} for t in tracks]
+    return [
+        {
+            "track_id": t.track_id,
+            "name": t.name,
+            "description": t.description,
+            "problem_statement_count": len(t.problem_statements) if t.problem_statements else 0,
+            "problem_statements": [
+                {
+                    "id": ps.id,
+                    "title": ps.title,
+                    "description": ps.description,
+                    "info": ps.description,
+                    "track_id": ps.track_id
+                }
+                for ps in (t.problem_statements or [])
+            ]
+        }
+        for t in tracks
+    ]
 
 @router.get("/tracks/{track_id}/problem-statements", summary="List problem statements for a specific track when clicked")
 async def get_track_problem_statements(
