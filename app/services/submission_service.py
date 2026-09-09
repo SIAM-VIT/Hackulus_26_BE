@@ -117,11 +117,12 @@ class SubmissionService:
 
     @staticmethod
     async def submit_review1(db: AsyncSession, user: User, data: Review1SubmissionCreate):
-        links: Dict[str, Any] = {"github": data.github_link}
-        if data.ppt_link:
-            links["ppt"] = data.ppt_link
-        if data.demo_link:
-            links["demo"] = data.demo_link
+        links: Dict[str, Any] = {
+            "github": data.github_link,
+            "ppt": data.ppt_link
+        }
+        if data.figma_link:
+            links["figma"] = data.figma_link
 
         return await SubmissionService.create_submission(db, user, SubmissionCreate(
             type="review1",
@@ -132,18 +133,38 @@ class SubmissionService:
 
     @staticmethod
     async def submit_review2(db: AsyncSession, user: User, data: Review2SubmissionCreate):
-        links: Dict[str, Any] = {"github": data.github_link}
-        if data.ppt_link:
-            links["ppt"] = data.ppt_link
-        if data.live_url:
-            links["live_url"] = data.live_url
-        if data.video_link:
-            links["video"] = data.video_link
+        pp = user.participant_profile
+        
+        # Look up existing Review 1 submission for this team to inherit title, description, links
+        r1_sub = None
+        if pp and pp.team_id:
+            r1_stmt = select(Submission).where(
+                Submission.team_id == pp.team_id,
+                Submission.type == "review1"
+            ).order_by(Submission.submission_id.desc())
+            r1_res = await db.execute(r1_stmt)
+            r1_sub = r1_res.scalars().first()
+
+        r1_links = r1_sub.links if (r1_sub and r1_sub.links) else {}
+        
+        final_title = data.title or (r1_sub.title if r1_sub and r1_sub.title else "Review 2 Final Submission")
+        final_description = data.description or (r1_sub.description if r1_sub and r1_sub.description else "")
+        final_github = data.github_link or r1_links.get("github") or ""
+        final_ppt = data.ppt_link or r1_links.get("ppt") or ""
+        final_figma = data.figma_link or r1_links.get("figma")
+
+        links: Dict[str, Any] = {
+            "github": final_github,
+            "ppt": final_ppt,
+            "live_url": data.live_url
+        }
+        if final_figma:
+            links["figma"] = final_figma
 
         return await SubmissionService.create_submission(db, user, SubmissionCreate(
             type="review2",
-            title=data.title or "Review 2 Final Submission",
-            description=data.description,
+            title=final_title,
+            description=final_description,
             links=links
         ))
 

@@ -12,19 +12,19 @@ class Review0SubmissionCreate(BaseModel):
     problem_statement_id: int
 
 class Review1SubmissionCreate(BaseModel):
-    github_link: str  # Mandatory
-    ppt_link: Optional[str] = None  # Optional
-    demo_link: Optional[str] = None
-    title: Optional[str] = None
-    description: Optional[str] = None
+    title: str
+    description: str
+    github_link: str
+    ppt_link: str
+    figma_link: Optional[str] = None
 
 class Review2SubmissionCreate(BaseModel):
-    github_link: str  # Mandatory
-    ppt_link: Optional[str] = None  # Optional
-    live_url: Optional[str] = None
-    video_link: Optional[str] = None
+    live_url: str
+    figma_link: Optional[str] = None
     title: Optional[str] = None
     description: Optional[str] = None
+    github_link: Optional[str] = None
+    ppt_link: Optional[str] = None
 
 class SubmissionUpdate(BaseModel):
     title: Optional[str] = None
