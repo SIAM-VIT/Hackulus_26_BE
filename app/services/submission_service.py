@@ -117,11 +117,12 @@ class SubmissionService:
 
     @staticmethod
     async def submit_review1(db: AsyncSession, user: User, data: Review1SubmissionCreate):
-        links: Dict[str, Any] = {"github": data.github_link}
-        if data.ppt_link:
-            links["ppt"] = data.ppt_link
-        if data.demo_link:
-            links["demo"] = data.demo_link
+        links: Dict[str, Any] = {
+            "github": data.github_link,
+            "ppt": data.ppt_link
+        }
+        if data.figma_link:
+            links["figma"] = data.figma_link
 
         return await SubmissionService.create_submission(db, user, SubmissionCreate(
             type="review1",
@@ -132,13 +133,13 @@ class SubmissionService:
 
     @staticmethod
     async def submit_review2(db: AsyncSession, user: User, data: Review2SubmissionCreate):
-        links: Dict[str, Any] = {"github": data.github_link}
-        if data.ppt_link:
-            links["ppt"] = data.ppt_link
-        if data.live_url:
-            links["live_url"] = data.live_url
-        if data.video_link:
-            links["video"] = data.video_link
+        links: Dict[str, Any] = {
+            "github": data.github_link,
+            "ppt": data.ppt_link,
+            "live_url": data.live_url
+        }
+        if data.figma_link:
+            links["figma"] = data.figma_link
 
         return await SubmissionService.create_submission(db, user, SubmissionCreate(
             type="review2",
