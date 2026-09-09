@@ -66,3 +66,11 @@ async def root():
         "docs": "/docs",
         "redoc": "/redoc"
     }
+
+@app.get("/health", summary="Health check / Keep-alive ping endpoint")
+@app.get("/ping", summary="Health check / Keep-alive ping endpoint")
+async def health_check():
+    return {
+        "status": "ok",
+        "alive": True
+    }
