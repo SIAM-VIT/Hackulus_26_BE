@@ -19,12 +19,12 @@ class Review1SubmissionCreate(BaseModel):
     figma_link: Optional[str] = None
 
 class Review2SubmissionCreate(BaseModel):
-    title: str
-    description: str
-    github_link: str
-    ppt_link: str
     live_url: str
     figma_link: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    github_link: Optional[str] = None
+    ppt_link: Optional[str] = None
 
 class SubmissionUpdate(BaseModel):
     title: Optional[str] = None
