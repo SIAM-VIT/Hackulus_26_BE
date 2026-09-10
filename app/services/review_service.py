@@ -155,22 +155,40 @@ class ReviewService:
 
         leaderboard = []
         for team in teams:
-            team_reviews = []
-            for s in team.submissions:
-                for r in s.reviews:
-                    if round_name is None or r.review_round == round_name:
-                        team_reviews.append(r)
+            r1_reviews = []
+            r2_reviews = []
 
-            if team_reviews:
-                avg_score = sum(float(r.score or 0) for r in team_reviews) / len(team_reviews)
-                avg_innovation = sum(float(r.innovation_score or 0) for r in team_reviews) / len(team_reviews)
-                avg_tech = sum(float(r.technical_complexity_score or 0) for r in team_reviews) / len(team_reviews)
-                avg_feasibility = sum(float(r.feasibility_score or 0) for r in team_reviews) / len(team_reviews)
-                avg_ui_ux = sum(float(r.ui_ux_score or 0) for r in team_reviews) / len(team_reviews)
-                avg_presentation = sum(float(r.presentation_score or 0) for r in team_reviews) / len(team_reviews)
-                avg_progress = sum(float(r.progress_score or 0) for r in team_reviews) / len(team_reviews)
+            for s in team.submissions:
+                stype = s.type.value if hasattr(s.type, "value") else str(s.type)
+                for r in s.reviews:
+                    rnd = r.review_round or stype
+                    if rnd == "review1":
+                        r1_reviews.append(r)
+                    elif rnd in ["review2", "final"]:
+                        r2_reviews.append(r)
+
+            r1_score = (sum(float(r.score or 0) for r in r1_reviews) / len(r1_reviews)) if r1_reviews else 0.0
+            r2_score = (sum(float(r.score or 0) for r in r2_reviews) / len(r2_reviews)) if r2_reviews else 0.0
+
+            if round_name == "review1":
+                total_score = r1_score
+                active_reviews = r1_reviews
+            elif round_name in ["review2", "final"]:
+                total_score = r2_score
+                active_reviews = r2_reviews
             else:
-                avg_score = 0.0
+                # "all": Combined sum of Review 1 and Review 2 total scores
+                total_score = r1_score + r2_score
+                active_reviews = r1_reviews + r2_reviews
+
+            if active_reviews:
+                avg_innovation = sum(float(r.innovation_score or 0) for r in active_reviews) / len(active_reviews)
+                avg_tech = sum(float(r.technical_complexity_score or 0) for r in active_reviews) / len(active_reviews)
+                avg_feasibility = sum(float(r.feasibility_score or 0) for r in active_reviews) / len(active_reviews)
+                avg_ui_ux = sum(float(r.ui_ux_score or 0) for r in active_reviews) / len(active_reviews)
+                avg_presentation = sum(float(r.presentation_score or 0) for r in active_reviews) / len(active_reviews)
+                avg_progress = sum(float(r.progress_score or 0) for r in active_reviews) / len(active_reviews)
+            else:
                 avg_innovation = avg_tech = avg_feasibility = avg_ui_ux = avg_presentation = avg_progress = 0.0
 
             leaderboard.append({
@@ -178,8 +196,10 @@ class ReviewService:
                 "team_name": team.team_name,
                 "status": team.status.value if hasattr(team.status, "value") else str(team.status),
                 "track_name": team.track.name if team.track else "No Track Selected",
-                "reviews_count": len(team_reviews),
-                "total_score": round(avg_score, 2),
+                "reviews_count": len(active_reviews),
+                "review1_score": round(r1_score, 2),
+                "review2_score": round(r2_score, 2),
+                "total_score": round(total_score, 2),
                 "scores_breakdown": {
                     "innovation": round(avg_innovation, 2),
                     "technical_complexity": round(avg_tech, 2),
