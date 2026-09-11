@@ -310,7 +310,7 @@ async def set_hackathon_phase(
     phase_lower = phase.lower()
 
     # Auto update submission active windows
-    if "review 0" in phase_lower or "review0" in phase_lower:
+    if "review 0" in phase_lower or "review0" in phase_lower or "track and problem" in phase_lower or "problem statement" in phase_lower:
         config.active_windows = {"review0": True, "review1": False, "review2": False}
     elif "review 1" in phase_lower and "elimination" not in phase_lower:
         config.active_windows = {"review0": False, "review1": True, "review2": False}
