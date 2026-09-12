@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.models.review import Review
 
 class SubmissionType(str, Enum):
+    REVIEW0 = "review0"
     REVIEW1 = "review1"
     REVIEW2 = "review2"
     FINAL = "final"

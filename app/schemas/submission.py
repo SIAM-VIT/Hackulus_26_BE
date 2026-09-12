@@ -10,20 +10,23 @@ class SubmissionCreate(BaseModel):
 class Review0SubmissionCreate(BaseModel):
     track_id: int
     problem_statement_id: int
+    title: str
+    ppt_link: str
+    description: Optional[str] = None
 
 class Review1SubmissionCreate(BaseModel):
-    title: str
-    description: str
     github_link: str
-    ppt_link: str
-    figma_link: Optional[str] = None
-
-class Review2SubmissionCreate(BaseModel):
-    live_url: str
-    figma_link: Optional[str] = None
+    figma_link: str
     title: Optional[str] = None
     description: Optional[str] = None
-    github_link: Optional[str] = None
+    ppt_link: Optional[str] = None
+
+class Review2SubmissionCreate(BaseModel):
+    github_link: str
+    figma_link: str
+    live_url: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
     ppt_link: Optional[str] = None
 
 class SubmissionUpdate(BaseModel):
