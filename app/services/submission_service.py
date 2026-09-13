@@ -155,6 +155,8 @@ class SubmissionService:
         pp = user.participant_profile
         if not pp:
             raise HTTPException(status_code=400, detail="User must belong to a team")
+        if not pp.is_leader:
+            raise HTTPException(status_code=403, detail="Only the team leader can submit Review 1")
 
         # Inherit title, description, ppt from Review 0
         r0_stmt = select(Submission).where(
@@ -189,6 +191,8 @@ class SubmissionService:
         pp = user.participant_profile
         if not pp:
             raise HTTPException(status_code=400, detail="User must belong to a team")
+        if not pp.is_leader:
+            raise HTTPException(status_code=403, detail="Only the team leader can submit Review 2")
         
         # Look up existing Review 1 or Review 0 submission for this team to inherit title, description, ppt
         r1_stmt = select(Submission).where(
@@ -236,7 +240,7 @@ class SubmissionService:
         if not pp or not submission or submission.team_id != pp.team_id:
             raise HTTPException(status_code=404, detail="Submission not found or unauthorized")
         if not pp.is_leader:
-            raise HTTPException(status_code=403, detail="Only team leader can modify submission")
+            raise HTTPException(status_code=403, detail="Only the team leader can modify review submissions")
 
         team = await db.get(Team, pp.team_id)
         if team and team.status == TeamStatus.REJECTED:
