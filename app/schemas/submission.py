@@ -16,14 +16,14 @@ class Review0SubmissionCreate(BaseModel):
 
 class Review1SubmissionCreate(BaseModel):
     github_link: str
-    figma_link: str
+    figma_link: Optional[str] = None
     title: Optional[str] = None
     description: Optional[str] = None
     ppt_link: Optional[str] = None
 
 class Review2SubmissionCreate(BaseModel):
     github_link: str
-    figma_link: str
+    figma_link: Optional[str] = None
     live_url: Optional[str] = None
     title: Optional[str] = None
     description: Optional[str] = None

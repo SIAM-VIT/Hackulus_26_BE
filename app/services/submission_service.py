@@ -173,8 +173,9 @@ class SubmissionService:
 
         links: Dict[str, Any] = {
             "github": data.github_link.strip(),
-            "figma": data.figma_link.strip(),
         }
+        if data.figma_link and data.figma_link.strip():
+            links["figma"] = data.figma_link.strip()
         if final_ppt:
             links["ppt"] = final_ppt
             links["presentation"] = final_ppt
@@ -218,8 +219,9 @@ class SubmissionService:
 
         links: Dict[str, Any] = {
             "github": data.github_link.strip(),
-            "figma": data.figma_link.strip(),
         }
+        if data.figma_link and data.figma_link.strip():
+            links["figma"] = data.figma_link.strip()
         if final_ppt:
             links["ppt"] = final_ppt
             links["presentation"] = final_ppt
