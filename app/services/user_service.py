@@ -50,7 +50,18 @@ class UserService:
         config_res = await db.execute(select(EventConfig).where(EventConfig.id == 1))
         config = config_res.scalar_one_or_none()
         current_phase = config.current_phase if config else "Participants reach"
-        windows = config.active_windows if config else {"review0": False, "review1": False, "review2": False}
+        phase_lower = (current_phase or "").lower()
+
+        if "begin" in phase_lower or "hacking" in phase_lower:
+            windows = {"review0": False, "review1": False, "review2": False}
+        elif "review 0" in phase_lower or "review0" in phase_lower or "track and problem" in phase_lower or "problem statement" in phase_lower:
+            windows = {"review0": True, "review1": False, "review2": False}
+        elif ("review 1" in phase_lower or "review1" in phase_lower) and "elimination" not in phase_lower:
+            windows = {"review0": False, "review1": True, "review2": False}
+        elif "review 2" in phase_lower or "review2" in phase_lower or "final" in phase_lower:
+            windows = {"review0": False, "review1": False, "review2": True}
+        else:
+            windows = {"review0": False, "review1": False, "review2": False}
 
         return {
             "user": {
