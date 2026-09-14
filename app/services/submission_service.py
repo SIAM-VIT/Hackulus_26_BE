@@ -33,6 +33,12 @@ class SubmissionService:
         sub_type = data.type.lower()
         config_res = await db.execute(select(EventConfig).where(EventConfig.id == 1))
         config = config_res.scalar_one_or_none()
+        current_phase = config.current_phase if config else ""
+        phase_lower = (current_phase or "").lower()
+
+        if "begin" in phase_lower or "hacking" in phase_lower:
+            raise HTTPException(status_code=403, detail="Hacking phase is active. Submissions are currently closed.")
+
         windows = config.active_windows if config else {}
         window_key = "review2" if sub_type == "final" else sub_type
 
